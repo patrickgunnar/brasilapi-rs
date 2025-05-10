@@ -1,10 +1,21 @@
 use crate::{error::Error, spec::BRASIL_API_URL};
 use serde::{Deserialize, Serialize};
+use std::ascii::AsciiExt;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Municipality {
-    pub nome: String,
-    pub codigo_ibge: String,
+    nome: String,
+    codigo_ibge: String,
+}
+
+impl Municipality {
+    pub fn get_name(&self) -> &str {
+        &self.nome
+    }
+
+    pub fn get_ibge_code(&self) -> &str {
+        &self.codigo_ibge
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -15,11 +26,35 @@ pub struct State {
     regiao: StateRegion,
 }
 
+impl State {
+    pub fn get_sigla(&self) -> &str {
+        &self.sigla
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.nome
+    }
+
+    pub fn get_region(&self) -> &StateRegion {
+        &self.regiao
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct StateRegion {
     id: i32,
     sigla: String,
     nome: String,
+}
+
+impl StateRegion {
+    pub fn get_sigla(&self) -> &str {
+        &self.sigla
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.nome
+    }
 }
 
 pub enum MunicipalitiesProvider {
@@ -126,6 +161,20 @@ pub async fn get_municipalities(
     let municipalities: Vec<Municipality> = serde_json::from_str(&body).unwrap();
 
     Ok(municipalities)
+}
+
+pub async fn find_municipality_by_state_and_name(
+    uf: &str,
+    city_name: &str,
+    providers: Option<Vec<MunicipalitiesProvider>>,
+) -> Result<Option<Municipality>, Error> {
+    let municipalities = get_municipalities(uf, providers).await?;
+
+    let municipality = municipalities
+        .into_iter()
+        .find(|municipality| municipality.get_name().eq_ignore_ascii_case(city_name));
+
+    Ok(municipality)
 }
 
 /// #### `get_all_states()`
